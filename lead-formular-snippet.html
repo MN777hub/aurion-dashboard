@@ -1,0 +1,103 @@
+<!--
+  Aurion Systems - Lead-Formular (einbettbar, DSGVO-konform)
+  Einbau: Diesen Block (von <div id="aurion-lead"> bis </script>) in die Website kopieren.
+  Voraussetzung: supabase-phase2.sql wurde ausgefuehrt (Tabelle aurion_leads mit anonymem INSERT).
+  Anpassen: data-datenschutz-url (Link zur Datenschutzerklaerung) und die CSS-Variablen unter .aurion-lead.
+  Speichert direkt in Supabase (anon INSERT, Prefer: return=minimal). Der Publishable Key ist oeffentlich vorgesehen;
+  geschuetzt wird per Row Level Security. KEIN Secret Key hier einfuegen.
+-->
+<div id="aurion-lead" class="aurion-lead" data-datenschutz-url="/datenschutz" data-source="website">
+  <style>
+    .aurion-lead { --al-bg:#111111; --al-ink:#F5F5F5; --al-muted:#A39E92; --al-accent:#C9A84C; --al-line:rgba(255,255,255,.14); --al-err:#f0857d; --al-ok:#7FB77E;
+      max-width:560px; margin:0 auto; padding:28px; background:var(--al-bg); color:var(--al-ink); border:1px solid var(--al-line); border-radius:16px;
+      font:16px/1.5 "DM Sans", system-ui, sans-serif; box-sizing:border-box; }
+    .aurion-lead *, .aurion-lead *::before, .aurion-lead *::after { box-sizing:border-box; }
+    .aurion-lead h3 { margin:0 0 4px; font:600 26px/1.2 "Cormorant Garamond", Georgia, serif; }
+    .aurion-lead p.al-sub { margin:0 0 20px; color:var(--al-muted); font-size:14px; }
+    .aurion-lead .al-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:520px){ .aurion-lead .al-row { grid-template-columns:1fr; } .aurion-lead { padding:20px; } }
+    .aurion-lead label { display:block; margin:0 0 12px; font-size:13px; color:var(--al-muted); }
+    .aurion-lead input[type=text], .aurion-lead input[type=email], .aurion-lead input[type=tel], .aurion-lead select, .aurion-lead textarea {
+      display:block; width:100%; margin-top:4px; padding:11px 12px; background:#0A0A0A; color:var(--al-ink); border:1px solid var(--al-line); border-radius:10px; font:inherit; }
+    .aurion-lead input:focus, .aurion-lead select:focus, .aurion-lead textarea:focus { outline:2px solid var(--al-accent); outline-offset:1px; border-color:transparent; }
+    .aurion-lead .al-consent { display:flex; gap:10px; align-items:flex-start; font-size:13px; color:var(--al-muted); margin:6px 0 16px; }
+    .aurion-lead .al-consent input { margin-top:3px; width:18px; height:18px; flex:none; accent-color:var(--al-accent); }
+    .aurion-lead .al-consent a { color:var(--al-accent); }
+    .aurion-lead button { width:100%; padding:13px 18px; border:0; border-radius:12px; background:var(--al-accent); color:#0A0A0A; font:700 15px/1 inherit; cursor:pointer; }
+    .aurion-lead button:disabled { opacity:.55; cursor:wait; }
+    .aurion-lead .al-msg { margin-top:14px; padding:11px 13px; border-radius:10px; font-size:14px; display:none; }
+    .aurion-lead .al-msg.al-ok { display:block; background:rgba(127,183,126,.12); border:1px solid rgba(127,183,126,.45); color:var(--al-ok); }
+    .aurion-lead .al-msg.al-err { display:block; background:rgba(240,133,125,.1); border:1px solid rgba(240,133,125,.45); color:var(--al-err); }
+    .aurion-lead .al-hp { position:absolute !important; left:-10000px; width:1px; height:1px; overflow:hidden; }
+  </style>
+  <form novalidate>
+    <h3>Unverbindlich anfragen</h3>
+    <p class="al-sub">Wir melden uns in der Regel innerhalb eines Werktags.</p>
+    <div class="al-row">
+      <label>Name *<input type="text" name="name" autocomplete="name" maxlength="200" required></label>
+      <label>Firma<input type="text" name="company" autocomplete="organization" maxlength="200"></label>
+    </div>
+    <div class="al-row">
+      <label>E-Mail *<input type="email" name="email" autocomplete="email" maxlength="200" required></label>
+      <label>Telefon<input type="tel" name="phone" autocomplete="tel" maxlength="50"></label>
+    </div>
+    <label>Branche
+      <select name="branche">
+        <option value="">Bitte wählen</option>
+        <option>Dienstleistung</option><option>Handwerk</option><option>Gastronomie</option><option>Gesundheit</option><option>E-Commerce</option><option>Immobilien</option><option>Sonstiges</option>
+      </select>
+    </label>
+    <label>Ihre Nachricht *<textarea name="message" rows="4" maxlength="2000" required></textarea></label>
+    <div class="al-hp" aria-hidden="true"><label>Bitte leer lassen<input type="text" name="website_url" tabindex="-1" autocomplete="off"></label></div>
+    <label class="al-consent"><input type="checkbox" name="consent" required>
+      <span>Ich willige ein, dass meine Angaben zur Bearbeitung meiner Anfrage gespeichert und verarbeitet werden. Die Einwilligung kann ich jederzeit mit Wirkung für die Zukunft widerrufen. Details in der <a class="al-privacy" href="/datenschutz" target="_blank" rel="noopener">Datenschutzerklärung</a>. *</span></label>
+    <button type="submit">Anfrage senden</button>
+    <div class="al-msg" role="status" aria-live="polite"></div>
+  </form>
+  <script>
+  (function () {
+    var SUPABASE_URL = 'https://jektftuvypbwligncffp.supabase.co';
+    var PUBLISHABLE_KEY = 'sb_publishable_t3RrEfLzFYbnpLlVUehV4A_Bz2aF_gY';
+    var root = document.getElementById('aurion-lead');
+    var form = root.querySelector('form');
+    var msg = root.querySelector('.al-msg');
+    var btn = form.querySelector('button');
+    var opened = Date.now();
+    var privacy = root.getAttribute('data-datenschutz-url');
+    if (privacy) root.querySelector('.al-privacy').setAttribute('href', privacy);
+
+    function show(kind, text) { msg.className = 'al-msg ' + (kind === 'ok' ? 'al-ok' : 'al-err'); msg.textContent = text; }
+    function val(n) { return (form.elements[n].value || '').trim(); }
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      msg.className = 'al-msg';
+      if (!val('name') || !val('message')) return show('err', 'Bitte Name und Nachricht ausfüllen.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val('email'))) return show('err', 'Bitte eine gültige E-Mail-Adresse eingeben.');
+      if (!form.elements.consent.checked) return show('err', 'Bitte stimmen Sie der Verarbeitung Ihrer Angaben zu.');
+      // Spam protection: honeypot filled or form submitted implausibly fast -> pretend success, send nothing
+      if (val('website_url') || Date.now() - opened < 3000) { form.reset(); return show('ok', 'Danke! Ihre Anfrage ist eingegangen. Wir melden uns bald bei Ihnen.'); }
+      var body = {
+        source: root.getAttribute('data-source') || 'website',
+        name: val('name').slice(0, 200), company: val('company').slice(0, 200) || null, email: val('email').slice(0, 200),
+        phone: val('phone').slice(0, 50) || null, branche: val('branche') || null, message: val('message').slice(0, 2000), consent: true
+      };
+      btn.disabled = true;
+      var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 15000) : null;
+      fetch(SUPABASE_URL + '/rest/v1/aurion_leads', {
+        method: 'POST',
+        headers: { 'apikey': PUBLISHABLE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify(body),
+        signal: ctrl ? ctrl.signal : undefined
+      }).then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        form.reset();
+        show('ok', 'Danke! Ihre Anfrage ist eingegangen. Wir melden uns bald bei Ihnen.');
+      }).catch(function () {
+        show('err', 'Leider hat das Senden nicht geklappt. Bitte versuchen Sie es erneut oder schreiben Sie uns direkt per E-Mail an office@aurion-systems.at.');
+      }).then(function () { if (timer) clearTimeout(timer); btn.disabled = false; });
+    });
+  })();
+  </script>
+</div>
